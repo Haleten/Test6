@@ -1,0 +1,8 @@
+{
+"type": "FeatureCollection",
+"name": "Office",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::3857" } },
+"features": [
+{ "type": "Feature", "properties": { }, "geometry": { "type": "Point", "coordinates": [ -15321.479789303321013, 6714109.315745005384088 ] } }
+]
+}

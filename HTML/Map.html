@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>London Viewer</title>
+        <link href="/CSS/Styles.css" rel="Stylesheet" type="text/css">
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
+        integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI="
+        crossorigin=""/>
+        <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"
+        integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM="
+        crossorigin=""></script>
+        <link rel="icon" type="image/x-icon" href="/Data/Thames.ico">
+        <script src="/Data/LondonGreenbelt.js"></script>
+        <script src="/Data/Boroughs.js"></script>
+        <script src="/Data/CentralActivityZone.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.0/proj4.js" integrity="sha512-lO8f7sIViqr9x5VE6Q72PS6f4FoZcuh5W9YzeSyfNRJ9z/qL3bkweiwG6keGzWS0BQzNDqAWXdBhYzFD6KffIw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script> 
+    </head>
+    <body id="Home">
+        <div id="Open"></div>
+        <div id="map">
+            <script>
+                var map = L.map('map', {zoomControl: false}).setView([51.49600811036229, -0.10025024414062501], 10);
+            </script>
+            <script>
+                var Esri_WorldImagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                maxZoom: 19, minZoom: 7,
+                attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+                });
+            </script>
+            <script>
+                var OSM = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19, minZoom: 7,
+                attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                }).addTo(map);
+            </script>
+            <script>
+                var Style = {
+                    "color": "#309912",
+                    "opacity": "0.4"
+                    };
+                var Greenbelts = L.geoJSON(LondonGreenbelt, {style: Style}).addTo(map);
+            </script>
+            <script>
+                var zonestyle = {
+                    "color": "#ffaa00",
+                    "opacity": "1"
+                }
+                var CentralZone = L.geoJSON(CAZ, {style: zonestyle}).addTo(map)
+            </script>
+            <script>
+            var Boroughs = L.geoJSON(Boroughs, {
+                onEachFeature: function (feature, layer) {
+                    layer.on('mouseover', function () {
+                        this.setStyle({
+                            'fillColor': '#ffffff',
+                            });
+                        });   
+                    layer.on('mouseout', function () {
+                        this.setStyle({
+                            'fillColor': '#3984e6',
+                            });
+                        }); 
+                    }
+                }).addTo(map);
+            </script>
+            <script>
+                var Arupicon = L.icon({
+                    iconUrl:"/Data/Arup_Red_RGB.png",
+
+                    iconSize: [30, 8],
+                })
+                var Arup = L.marker([51.521772170820405, -0.1376697236253312], {icon: Arupicon}).addTo(map).on("click", function(e){
+                    map.flyTo([51.521772170820405, -0.1376697236253312], 16);
+                });
+            </script>
+            <script>
+                 var BaseMaps = {
+                "Open Street Map": OSM,
+                "World Imagery": Esri_WorldImagery,
+                };
+
+                var OverlayMaps = {
+                    "London Boroughs":Boroughs,
+                    "Central Activities Zones":CentralZone,
+                    "Greenbelts":Greenbelts
+                };
+
+                var layerControl = L.control.layers(BaseMaps, OverlayMaps).addTo(map);
+
+                Boroughs.setZIndex(3);
+                CentralZone.setZIndex(2);
+                Greenbelts.setZIndex(1);
+
+            </script>
+            <script>
+                L.control.scale().addTo(map);
+            </script>
+            <script>
+                var linestyle = {
+                    "color": "#c91023",
+                    "weight": "1.5",
+                    "dashArray": "10, 10"
+                }
+                var PointIcon = L.icon({
+                    iconUrl:"/Data/Point.png",
+                    iconSize: [8,8],
+                })
+                map.on("click", addMarker);
+                function addMarker(e){
+                const markerPlace = document.querySelector(".marker-position");
+                const marker = new L.marker(e.latlng, {icon:PointIcon})
+                .addTo(map).on("click", function(e){
+                    L.geoJSON(line, {style: linestyle}).addTo(map)
+                });
+                latitude = marker.getLatLng().lat;
+                longitude = marker.getLatLng().lng;
+                console.log(longitude, latitude)
+                var end = turf.point([longitude, latitude]);
+                var distance = turf.distance(start, end, options)
+                var roundeddistance = turf.round(distance, 2);
+                var line = turf.lineString([[-0.1376697236253312, 51.521772170820405], [longitude, latitude],], {name: 'line 1'})
+                var bngprojection = 'PROJCS["OSGB 1936 / British National Grid", GEOGCS["OSGB 1936", DATUM["OSGB_1936", SPHEROID["Airy 1830",6377563.396,299.3249646, AUTHORITY["EPSG","7001"]], AUTHORITY["EPSG","6277"]], PRIMEM["Greenwich",0, AUTHORITY["EPSG","8901"]], UNIT["degree",0.01745329251994328, AUTHORITY["EPSG","9122"]], AUTHORITY["EPSG","4277"]], UNIT["metre",1, AUTHORITY["EPSG","9001"]], PROJECTION["Transverse_Mercator"], PARAMETER["latitude_of_origin",49], PARAMETER["central_meridian",-2], PARAMETER["scale_factor",0.9996012717], PARAMETER["false_easting",400000], PARAMETER["false_northing",-100000], AUTHORITY["EPSG","27700"], AXIS["Easting",EAST], AXIS["Northing",NORTH]]';
+                var bngcoords = proj4(bngprojection, [longitude, latitude]);
+                console.log(bngcoords);
+                document.getElementById("BNGResult").innerHTML=bngcoords;
+                var bearing = turf.bearing([-0.1376697236253312, 51.521772170820405], [longitude, latitude]);
+                var properbearing = turf.bearingToAzimuth(bearing)
+                console.log(properbearing);
+                var roundedbearing = turf.round(properbearing, 2);
+                marker.bindPopup('<p>' + roundeddistance + 'km at a bearing of ' + roundedbearing + '° from Arup' + '</p>')
+                var circleoptions={steps: 50, units: 'kilometers', properties: {foo:'bar'}};
+                var circledistance = turf.circle([-0.1376697236253312, 51.521772170820405], distance, circleoptions)
+            }
+            </script>
+            <script>
+                var start = turf.point([-0.1376697236253312, 51.521772170820405]);
+                var options = {units: 'kilometres'};
+            </script>
+        </div>
+        <div>
+            <Button id="HomeButton" type="button" onclick="window.location.href='./Opening.html';">Logout</Button>
+        </div>
+        <div>
+            <button onclick="thisfunction()" id="HomeReturn">⊹</button>
+            <script>
+                function thisfunction(){
+                    map.flyTo([51.49600811036229, -0.10025024414062501], 10)
+                }
+            </script>
+        </div>
+        <div>
+            <div id="MeasureResultBox">
+            <Button id="MeasureBox"><span id="BNGResult"></span></Button>
+            </div>
+            <button onclick="CopyToClipboard(id)" id="Copier">❐</button>
+            <script>
+                function CopyToClipboard(id){
+                var r = document.createRange();
+                r.selectNode(document.getElementById("MeasureBox"));
+                window.getSelection().removeAllRanges();
+                window.getSelection().addRange(r);
+                document.execCommand('copy');
+                window.getSelection().removeAllRanges();
+                }
+            </script>
+        </div>
+    </body>
+</html>
